@@ -13,6 +13,10 @@ try:
     # Wysyłanie wiadomości do serwera
     message = 'Cześć, to klient!'
     client_socket.sendall(message.encode())
+    message = input('Wyślij cos do serwera: ')
+    client_socket.sendall(message.encode())
+    
+    input('Naciśnij Enter, aby zakończyć działanie klienta...')
 
 finally:
     # Zamykanie gniazda klienta

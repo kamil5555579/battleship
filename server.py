@@ -1,4 +1,15 @@
 import socket
+import signal
+import sys
+
+# Funkcja obsługująca sygnał SIGINT (Ctrl+C)
+def signal_handler(sig, frame):
+    print('\nPrzerwano działanie serwera.')
+    server_socket.close()
+    sys.exit(0)
+
+# Ustawienie obsługi sygnału SIGINT
+signal.signal(signal.SIGINT, signal_handler)
 
 # Tworzenie gniazda serwera
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -14,21 +25,23 @@ server_socket.listen(1)
 
 print('Serwer nasłuchuje na porcie', server_address[1])
 
-# Akceptowanie połączenia
-connection, client_address = server_socket.accept()
 
-try:
-    print('Połączenie z', client_address)
+while True:
+    # Akceptowanie połączenia
+    connection, client_address = server_socket.accept()
 
-    # Odbieranie danych od klienta
-    while True:
-        data = connection.recv(1024)
-        if data:
-            print('Otrzymano:', data.decode())
-        else:
-            print('Brak danych od klienta')
-            break
+    try:
+        print('Połączenie z', client_address)
 
-finally:
-    # Zamykanie połączenia
-    connection.close()
+        # Odbieranie danych od klienta
+        while True:
+            data = connection.recv(1024)
+            if data:
+                print('Otrzymano:', data.decode())
+            else:
+                print('Brak danych od klienta')
+                break
+
+    finally:
+        # Zamykanie połączenia
+        connection.close()
