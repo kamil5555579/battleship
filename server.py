@@ -1,64 +1,75 @@
 import socket
 import signal
 import sys
+# sendall - nakładka na send, która zapewnia, że wszystkie dane zostaną wysłane
 
-# Funkcja obsługująca sygnał SIGINT (Ctrl+C)
-def signal_handler(sig, frame):
-    print('\nPrzerwano działanie serwera.')
-    server_socket.close()
-    sys.exit(0)
+def start_server():
+    # Tworzenie gniazda serwera
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# Ustawienie obsługi sygnału SIGINT
-signal.signal(signal.SIGINT, signal_handler)
+    # Adres i port serwera
+    server_address = ('localhost', 12346)
 
-# Tworzenie gniazda serwera
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Bindowanie gniazda do adresu i portu
+    server_socket.bind(server_address)
 
-# Adres i port serwera
-server_address = ('localhost', 12346)
+    # Nasłuchiwanie na połączenia
+    server_socket.listen()
 
-# Bindowanie gniazda do adresu i portu
-server_socket.bind(server_address)
+    print('Serwer nasłuchuje na porcie', server_address[1])
 
-# Nasłuchiwanie na połączenia
-server_socket.listen(1)
+    return server_socket
 
-print('Serwer nasłuchuje na porcie', server_address[1])
+def handle_clients(server_socket):
 
+    conn_list = []
 
-while True:
-    # Akceptowanie połączenia
-    connection1, client_address1 = server_socket.accept()
+    while len(conn_list) < 2:
+        # Akceptowanie połączenia
+        conn, addr = server_socket.accept()
 
-    try:
-        print('Połączenie z klientem 1', client_address1, 'czekam na drugiego klienta...')
-        message = 'Cześć, to serwer! Jesteś klientem 1'
-        connection1.sendall(message.encode()) # sendall - nakładka na send, która zapewnia, że wszystkie dane zostaną wysłane
+        if len(conn_list) == 0:
+            print('Połączenie z klientem 1', addr, 'czekam na drugiego klienta...')
+            message = '1'
+            conn.sendall(message.encode())
+            conn_list.append(conn)
+        else:
+            print('Połączenie z klientem 2', addr)
+            message = '2'
+            conn.sendall(message.encode())
+            conn_list.append(conn)
+            conn_list[0].sendall(message.encode()) # informacja dla pierwszego klienta, że gra się rozpoczyna
 
-        connection2, client_address2 = server_socket.accept()
-        print('Połączenie z klientem 2', client_address2)
-        message = 'Cześć, to serwer! Jesteś klientem 2'
-        connection2.sendall(message.encode())
+    return conn_list
+    
+def get_boards(conn_list):
 
-        # Odbieranie danych od klienta
-        while True:
-            data = connection1.recv(1024)
-            if data:
-                print('Otrzymano:', data.decode())
-                connection2.sendall(data)
+    for conn in conn_list:
+        start_message = 'board'
+        conn.sendall(start_message.encode())
 
-                data = connection2.recv(1024)
-                if data:
-                    print('Otrzymano:', data.decode())
-                    connection1.sendall(data)
-                else:
-                    print('Brak danych od klienta')
-                    break
-            else:
-                print('Brak danych od klienta')
-                break
+    for conn in conn_list:
+        data = conn.recv(1024)
+        print('Otrzymano planszę:', data.decode())
+        # inicjalizacja planszy
 
-    finally:
-        # Zamykanie połączenia
-        connection1.close()
-        connection2.close()
+def handle_game(conn_list):
+        
+    shooter = 0
+
+    while True:
+        message = 'shoot'
+        conn_list[shooter].sendall(message.encode())
+        data = conn_list[shooter].recv(1024)
+        print('Otrzymano strzał:', data.decode())
+        # to-do sprawdzenie czy strzał trafił
+        conn_list[not shooter].sendall(data) # przekazanie strzału do drugiego klienta
+        shooter = not shooter
+        # to-do sprawdzenie czy ktoś wygrał
+        # to-do zakończenie gry
+
+if __name__ == '__main__':
+    server_socket = start_server()
+    conn_list = handle_clients(server_socket)
+    get_boards(conn_list)
+    handle_game(conn_list)

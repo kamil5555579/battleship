@@ -1,44 +1,48 @@
 import socket
 
-# Tworzenie gniazda klienta
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def connect_to_server():
+    # Tworzenie gniazda klienta
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# Adres i port serwera
-server_address = ('localhost', 12346)
+    # Adres i port serwera
+    server_address = ('localhost', 12346)
 
-# Łączenie z serwerem
-client_socket.connect(server_address)
+    # Łączenie z serwerem
+    client_socket.connect(server_address)
 
-try:
-    # Odbieranie danych od serwera
-    data = client_socket.recv(1024)
-    print('Otrzymano:', data.decode())
-    if data.decode()[-1] == '1':
-        while True:
-            # Najpierw wysyłanie wiadomości do serwera
-            message = input('Wyślij cos do serwera: ')
-            if message == 'exit':
-                break
-            client_socket.sendall(message.encode())
-            print('Wysłano:', message)
-            # Odbieranie danych od serwera
-            message = client_socket.recv(1024)
-            print('Otrzymano:', message.decode())
+    return client_socket
 
+def wait_for_msg(client_socket):
 
-    elif data.decode()[-1] == '2':
-        while True:
-            # Najpierw odbieranie danych od serwera
-            message = client_socket.recv(1024)
-            print('Otrzymano:', message.decode())
-            # Wysyłanie wiadomości do serwera
-            message = input('Wyślij cos do serwera: ')
-            if message == 'exit':
-                break
-            client_socket.sendall(message.encode())
-            print('Wysłano:', message)
+    while True:
+        # Odbieranie danych od serwera
+        data = client_socket.recv(1024)
 
+        if data.decode() == '1':
+            print('Oczekiwanie na drugiego gracza...')
 
-finally:
-    # Zamykanie gniazda klienta
+        elif data.decode() == '2':
+            print('Gra rozpoczyna się!')
+
+        elif data.decode() == 'board':
+            print('Ustaw swoje statki')
+            # wysyłanie planszy
+            fake_board = input("Podaj swoją planszę: ")
+            client_socket.sendall(fake_board.encode())
+            print('Wysłano planszę. Czekaj na planszę przeciwnika')
+
+        elif data.decode() == 'shoot':
+            print('Twój ruch')
+            # strzał
+            shot = input("Podaj współrzędne strzału: ")
+            client_socket.sendall(shot.encode())
+            print('Wysłano strzał. Czekaj na ruch przeciwnika')
+
+        else: # otrzymano strzał
+            print('Otrzymano strzał:', data.decode())
+
+if __name__ == '__main__':
+
+    client_socket = connect_to_server()
+    wait_for_msg(client_socket)
     client_socket.close()
