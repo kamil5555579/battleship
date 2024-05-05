@@ -1,6 +1,7 @@
 import socket
 import signal
 import sys
+from game_engine import Game, Player
 # sendall - nakładka na send, która zapewnia, że wszystkie dane zostaną wysłane
 
 def start_server():
@@ -29,47 +30,24 @@ def handle_clients(server_socket):
         conn, addr = server_socket.accept()
 
         if len(conn_list) == 0:
-            print('Połączenie z klientem 1', addr, 'czekam na drugiego klienta...')
+            print('Connection with client 1', addr, 'waiting for second player')
             message = '1'
             conn.sendall(message.encode())
             conn_list.append(conn)
         else:
-            print('Połączenie z klientem 2', addr)
+            print('Connection with client 2', addr, 'game starts')
             message = '2'
             conn.sendall(message.encode())
             conn_list.append(conn)
             conn_list[0].sendall(message.encode()) # informacja dla pierwszego klienta, że gra się rozpoczyna
 
     return conn_list
-    
-def get_boards(conn_list):
-
-    for conn in conn_list:
-        start_message = 'board'
-        conn.sendall(start_message.encode())
-
-    for conn in conn_list:
-        data = conn.recv(1024)
-        print('Otrzymano planszę:', data.decode())
-        # inicjalizacja planszy
-
-def handle_game(conn_list):
-        
-    shooter = 0
-
-    while True:
-        message = 'shoot'
-        conn_list[shooter].sendall(message.encode())
-        data = conn_list[shooter].recv(1024)
-        print('Otrzymano strzał:', data.decode())
-        # to-do sprawdzenie czy strzał trafił
-        conn_list[not shooter].sendall(data) # przekazanie strzału do drugiego klienta
-        shooter = not shooter
-        # to-do sprawdzenie czy ktoś wygrał
-        # to-do zakończenie gry
 
 if __name__ == '__main__':
     server_socket = start_server()
     conn_list = handle_clients(server_socket)
-    get_boards(conn_list)
-    handle_game(conn_list)
+    player1 = Player(conn_list[0])
+    player2 = Player(conn_list[1])
+    game = Game(player1, player2)
+    game.start()
+    server_socket.close()

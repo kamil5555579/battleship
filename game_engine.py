@@ -1,23 +1,30 @@
 import numpy as np
 
-
 boat_types = {
-    "Carrier" : 5,
-    "Battleship": 4,
-    "Cruiser": 3,
-    "Submarine": 3,
-    "Destroyer": 2
+    # "carrier" : 5,
+    # "battleship": 4,
+    # "cruiser": 3,
+    "submarine": 3,
+    "destroyer": 2
 }
 
-def get_indexes_from_player(prompt: str):
+def get_indexes_from_player(conn, prompt: str):
     while(True):
-        command = input(prompt)
-        indexes = convert_to_index(command)
+        response = send_prompt_and_get_response(conn, prompt)
+        indexes = convert_to_index(response)
         if indexes != -1:
             break
-        print('Wrong position! Use letter A-J and number 1-10')
+        send_message(conn, 'error')
 
     return indexes
+
+def send_prompt_and_get_response(conn, prompt: str):
+    conn.sendall(prompt.encode())
+    data = conn.recv(1024)
+    return data.decode()
+
+def send_message(conn, message: str):
+    conn.sendall(message.encode())
 
 def convert_to_index(in_str: str):
         # Number convertion
@@ -51,11 +58,10 @@ def convert_to_index(in_str: str):
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, player1, player2):
         self.amount_of_winning_hits = np.array(list(boat_types.values())).sum()
         self.active_player = False
-        self.players = (Player(1), Player(2))
-        
+        self.players = (player1, player2)
 
     def change_player(self):
         self.active_player = not self.active_player
@@ -64,7 +70,7 @@ class Game:
         self.players[int(self.active_player)].show_shots()
 
     def shoot(self):
-        indexes = get_indexes_from_player("Shoot: ")
+        indexes = get_indexes_from_player(self.players[self.active_player].conn, "shoot")
         if self.players[int(not self.active_player)].check_hit(indexes) == 1:
             self.players[self.active_player].hit(indexes)
         else:
@@ -91,10 +97,11 @@ class Game:
             self.change_player()
 
 class Player:
-    def __init__(self, number):
-        self.players_board = Ship_placement()
+    def __init__(self, conn):
+        self.players_board = Ship_placement(conn)
         self.players_shots = Shots()
         self.hit_counter = 0
+        self.conn = conn
 
     def show_shots(self):
         print(self.players_shots)
@@ -113,7 +120,7 @@ class Player:
         return self.hit_counter
 
 class Ship_placement:
-    def __init__(self, board=None):
+    def __init__(self, conn, board=None):
         if board == None:
             # first index number(row) second letter column
             self.ship_placements = np.zeros([10,10])
@@ -121,9 +128,10 @@ class Ship_placement:
             lst_of_boat_types = list(boat_types.keys())
             i = 0
             while(i<len(lst_of_boat_types)):
-                print(f"Please place your: {lst_of_boat_types[i]} (size: {boat_types[lst_of_boat_types[i]]})")
-                position = get_indexes_from_player('Staring index (A-Z and 1-10): ')
-                rotation = input('Rotation (H - horizontal or V - vertical): ')
+                # print(f"Please place your: {lst_of_boat_types[i]} (size: {boat_types[lst_of_boat_types[i]]})")
+                # position = get_indexes_from_player('Staring index (A-Z and 1-10): ')
+                position = get_indexes_from_player(conn, lst_of_boat_types[i])
+                rotation = send_prompt_and_get_response(conn, 'rotation')
                 if not (self.place_boat(lst_of_boat_types[i], position, rotation)==-1):
                     i+=1
 
@@ -140,7 +148,7 @@ class Ship_placement:
         y = starting_indexes[0]
 
         if (y+length)>9 or (x+length)>9:
-            print("Wrong ship placement")
+            send_message(self.conn, 'error')
             return -1 
 
 
@@ -148,7 +156,7 @@ class Ship_placement:
             if np.any(self.ship_placements[ \
                 x:x+length, \
                 y] == 1):
-                    print("Wrong ship placement")
+                    send_message(self.conn, 'error')
                     return -1
             else:
                 self.ship_placements[ \
@@ -158,7 +166,7 @@ class Ship_placement:
             if np.any(self.ship_placements[ \
                 x, \
                 y:y+length] == 1):
-                    print("Wrong ship placement")
+                    send_message(self.conn, 'error')
                     return -1
             else:
                 self.ship_placements[ \
@@ -193,5 +201,5 @@ class Shots:
 
 # Main
 
-game1 = Game()
-game1.start()
+# game1 = Game()
+# game1.start()

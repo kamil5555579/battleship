@@ -17,29 +17,34 @@ def wait_for_msg(client_socket):
     while True:
         # Odbieranie danych od serwera
         data = client_socket.recv(1024)
+        decoded = data.decode()
 
-        if data.decode() == '1':
-            print('Oczekiwanie na drugiego gracza...')
+        if decoded == '1':
+            print('Waiting for second player...')
 
-        elif data.decode() == '2':
-            print('Gra rozpoczyna się!')
+        elif decoded == '2':
+            print('We have two players. Game starts!')
 
-        elif data.decode() == 'board':
-            print('Ustaw swoje statki')
-            # wysyłanie planszy
-            fake_board = input("Podaj swoją planszę: ")
-            client_socket.sendall(fake_board.encode())
-            print('Wysłano planszę. Czekaj na planszę przeciwnika')
+        elif decoded == 'carrier' or decoded == 'battleship' or decoded == 'cruiser' or decoded == 'submarine' or decoded == 'destroyer':
+            input_str = 'Place your ' + decoded + ' (5 fields)\n Starting index (A-Z and 1-10): '
+            index = input(input_str)
+            client_socket.sendall(index.encode())
+            # print('Wysłano planszę. Czekaj na planszę przeciwnika')
 
-        elif data.decode() == 'shoot':
-            print('Twój ruch')
-            # strzał
-            shot = input("Podaj współrzędne strzału: ")
+        elif decoded == 'rotation':
+            rotation = input('Choose rotation (v/h): ')
+            client_socket.sendall(rotation.encode())
+
+        elif decoded == 'shoot':
+            shot = input('Shoot! (A-J and 1-10): ')
             client_socket.sendall(shot.encode())
-            print('Wysłano strzał. Czekaj na ruch przeciwnika')
+            print('Shot sent. Wait for response...')
 
+        elif decoded == 'error':
+            print('Error. Try again.')
+            
         else: # otrzymano strzał
-            print('Otrzymano strzał:', data.decode())
+            print('Otrzymano strzał:', decoded)
 
 if __name__ == '__main__':
 
