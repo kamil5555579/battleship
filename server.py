@@ -3,13 +3,17 @@ import signal
 import sys
 from game_engine import Game, Player
 # sendall - nakładka na send, która zapewnia, że wszystkie dane zostaną wysłane
+import atexit
+
+def close_socket(server_socket):
+    server_socket.close()
 
 def start_server():
     # Tworzenie gniazda serwera
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Adres i port serwera
-    server_address = ('localhost', 12346)
+    server_address = ('localhost', 12345)
 
     # Bindowanie gniazda do adresu i portu
     server_socket.bind(server_address)
@@ -43,11 +47,18 @@ def handle_clients(server_socket):
 
     return conn_list
 
+def disconnect_clients(conn_list):
+    message = 'exit'
+    for conn in conn_list:
+        conn.sendall(message.encode())
+
 if __name__ == '__main__':
     server_socket = start_server()
+    atexit.register(close_socket, server_socket)
     conn_list = handle_clients(server_socket)
     player1 = Player(conn_list[0])
     player2 = Player(conn_list[1])
     game = Game(player1, player2)
     game.start()
+    disconnect_clients(conn_list)
     server_socket.close()
