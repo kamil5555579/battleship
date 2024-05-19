@@ -21,7 +21,7 @@ def start_server():
     # Nasłuchiwanie na połączenia
     server_socket.listen()
 
-    print('Serwer nasłuchuje na porcie', server_address[1])
+    print('Server listens on port', server_address[1])
 
     return server_socket
 
@@ -31,6 +31,7 @@ def handle_clients(server_socket):
 
     while len(conn_list) < 2:
         # Akceptowanie połączenia
+        print('Waiting for connection...')
         conn, addr = server_socket.accept()
 
         if len(conn_list) == 0:
@@ -51,14 +52,19 @@ def disconnect_clients(conn_list):
     message = 'exit'
     for conn in conn_list:
         conn.sendall(message.encode())
+        # conn.close()
+        print('Client disconnected')
 
 if __name__ == '__main__':
     server_socket = start_server()
     atexit.register(close_socket, server_socket)
-    conn_list = handle_clients(server_socket)
-    player1 = Player(conn_list[0])
-    player2 = Player(conn_list[1])
-    game = Game(player1, player2)
-    game.start()
-    disconnect_clients(conn_list)
+
+    while True:
+        conn_list = handle_clients(server_socket)
+        player1 = Player(conn_list[0])
+        player2 = Player(conn_list[1])
+        game = Game(player1, player2)
+        game.start()
+        disconnect_clients(conn_list)
+
     server_socket.close()

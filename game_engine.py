@@ -113,6 +113,7 @@ class Game:
                 send_message(self.players[self.active_player].conn,win_msg)
                 send_message(self.players[not self.active_player].conn,win_msg)
                 print(win_msg)
+                time.sleep(0.1) # 100ms
                 break
             self.change_player()
 
