@@ -9,9 +9,17 @@ boat_types = {
     "destroyer": 2
 }
 
+class ConnectionErrorWithConn(Exception):
+    def __init__(self, conn, message="Connection error occurred"):
+        super().__init__(message)
+        self.conn = conn
+
 def get_indexes_from_player(conn, prompt: str):
     while(True):
-        response = send_prompt_and_get_response(conn, prompt)
+        try:
+            response = send_prompt_and_get_response(conn, prompt)
+        except:
+            raise ConnectionError
         indexes = convert_to_index(response)
         print(indexes)
         if indexes != -1:
@@ -22,7 +30,10 @@ def get_indexes_from_player(conn, prompt: str):
     return indexes
 
 def send_prompt_and_get_response(conn, prompt: str):
-    conn.sendall(prompt.encode())
+    try:
+        conn.sendall(prompt.encode())
+    except:
+        raise ConnectionError
     data = conn.recv(1024)
     return data.decode()
 
@@ -79,7 +90,11 @@ class Game:
 
     def shoot(self):
         while(True):
-            indexes = get_indexes_from_player(self.players[self.active_player].conn, "shoot")
+            try:
+                indexes = get_indexes_from_player(self.players[self.active_player].conn, "shoot")
+            except:
+                print("Error while getting response")
+                raise ConnectionError
             if not self.players[self.active_player].is_already_shot(indexes):
                 break
             else:
@@ -106,7 +121,10 @@ class Game:
             self.show_board()
             self.show_shots()
             time.sleep(0.1) # 100ms
-            self.shoot()
+            try:
+                self.shoot()
+            except:
+                raise ConnectionErrorWithConn(self.players[self.active_player].conn)
             self.show_shots()
             if self.did_player_won():
                 win_msg = f"Player {int(self.active_player) + 1} won !!1!1"
@@ -119,7 +137,10 @@ class Game:
 
 class Player:
     def __init__(self, conn):
-        self.players_board = Ship_placement(conn)
+        try:
+            self.players_board = Ship_placement(conn)
+        except:
+            raise ConnectionErrorWithConn(conn)
         self.players_shots = Shots()
         self.hit_counter = 0
         self.conn = conn
@@ -159,8 +180,14 @@ class Ship_placement:
             while(i<len(lst_of_boat_types)):
                 # print(f"Please place your: {lst_of_boat_types[i]} (size: {boat_types[lst_of_boat_types[i]]})")
                 # position = get_indexes_from_player('Staring index (A-Z and 1-10): ')
-                position = get_indexes_from_player(self.conn, lst_of_boat_types[i])
-                rotation = send_prompt_and_get_response(self.conn, 'rotation')
+                try:
+                    position = get_indexes_from_player(self.conn, lst_of_boat_types[i])
+                except:
+                    raise ConnectionError
+                try:
+                    rotation = send_prompt_and_get_response(self.conn, 'rotation')
+                except:
+                    raise ConnectionError
                 if not (self.place_boat(lst_of_boat_types[i], position, rotation)==-1):
                     i+=1
 

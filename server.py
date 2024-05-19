@@ -1,7 +1,7 @@
 import socket
 import signal
 import sys
-from game_engine import Game, Player
+from game_engine import Game, Player, ConnectionErrorWithConn
 # sendall - nakładka na send, która zapewnia, że wszystkie dane zostaną wysłane
 import atexit
 
@@ -25,9 +25,7 @@ def start_server():
 
     return server_socket
 
-def handle_clients(server_socket):
-
-    conn_list = []
+def handle_clients(server_socket, conn_list = []):
 
     while len(conn_list) < 2:
         # Akceptowanie połączenia
@@ -52,19 +50,29 @@ def disconnect_clients(conn_list):
     message = 'exit'
     for conn in conn_list:
         conn.sendall(message.encode())
-        # conn.close()
+        conn.close()
         print('Client disconnected')
 
 if __name__ == '__main__':
     server_socket = start_server()
     atexit.register(close_socket, server_socket)
+    conn_list = []
 
     while True:
-        conn_list = handle_clients(server_socket)
-        player1 = Player(conn_list[0])
-        player2 = Player(conn_list[1])
-        game = Game(player1, player2)
-        game.start()
-        disconnect_clients(conn_list)
+        conn_list = handle_clients(server_socket, conn_list)
+        try:
+            player1 = Player(conn_list[0])
+            player2 = Player(conn_list[1])
+            game = Game(player1, player2)
+            game.start()
+        except ConnectionErrorWithConn as e:
+            print('Error. Closing connection')
+            conn_list.remove(e.conn)
+            e.conn.close()
+            conn_list[0].sendall('Opponent disconnected, waiting for new player'.encode())
+        else:
+            print('Game finished')
+            disconnect_clients(conn_list)
+            conn_list = []
 
     server_socket.close()
