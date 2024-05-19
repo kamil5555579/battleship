@@ -4,6 +4,7 @@ import sys
 from game_engine import Game, Player, ConnectionErrorWithConn
 # sendall - nakładka na send, która zapewnia, że wszystkie dane zostaną wysłane
 import atexit
+import threading
 
 def close_socket(server_socket):
     server_socket.close()
@@ -53,6 +54,12 @@ def disconnect_clients(conn_list):
         conn.close()
         print('Client disconnected')
 
+def init_board(player):
+    try:
+        player.init_board()
+    except ConnectionErrorWithConn as e:
+        print('Error. Closing connection')
+
 if __name__ == '__main__':
     server_socket = start_server()
     atexit.register(close_socket, server_socket)
@@ -60,19 +67,37 @@ if __name__ == '__main__':
 
     while True:
         conn_list = handle_clients(server_socket, conn_list)
-        try:
-            player1 = Player(conn_list[0])
-            player2 = Player(conn_list[1])
-            game = Game(player1, player2)
-            game.start()
-        except ConnectionErrorWithConn as e:
-            print('Error. Closing connection')
-            conn_list.remove(e.conn)
-            e.conn.close()
-            conn_list[0].sendall('Opponent disconnected, waiting for new player'.encode())
-        else:
-            print('Game finished')
-            disconnect_clients(conn_list)
-            conn_list = []
+        player1 = Player(conn_list[0])
+        player2 = Player(conn_list[1])
+        init_success = 0
+        thread1 = threading.Thread(target=init_board, args=(player1,))
+        thread2 = threading.Thread(target=init_board, args=(player2,))
+        thread1.start()
+        thread2.start() 
+        thread1.join()
+        thread2.join()
+        for player in [player1, player2]:
+            if player.players_board is None:
+                player.conn.close()
+                conn_list.remove(player.conn)
+                print(conn_list)
+                if len(conn_list) == 1:
+                    conn_list[0].sendall('Opponent disconnected, waiting for new player'.encode())
+            else:
+                init_success += 1
+
+        if init_success == 2:
+            try:
+                game = Game(player1, player2)
+                game.start()
+            except ConnectionErrorWithConn as e:
+                print('Error. Closing connection')
+                conn_list.remove(e.conn)
+                e.conn.close()
+                conn_list[0].sendall('Opponent disconnected, waiting for new player'.encode())
+            else:
+                print('Game finished')
+                disconnect_clients(conn_list)
+                conn_list = []
 
     server_socket.close()

@@ -137,14 +137,17 @@ class Game:
 
 class Player:
     def __init__(self, conn):
-        try:
-            self.players_board = Ship_placement(conn)
-        except:
-            raise ConnectionErrorWithConn(conn)
         self.players_shots = Shots()
         self.hit_counter = 0
         self.conn = conn
+        self.players_board = None
 
+    def init_board(self):
+        try:
+            self.players_board = Ship_placement(self.conn)
+        except:
+            raise ConnectionErrorWithConn(self.conn)
+        
     def show_shots(self):
         return str(self.players_shots)
 
