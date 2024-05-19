@@ -146,7 +146,7 @@ class Player:
         try:
             self.players_board = Ship_placement(self.conn)
         except:
-            raise ConnectionErrorWithConn(self.conn)
+            print('Error. Closing connection')
         
     def show_shots(self):
         return str(self.players_shots)

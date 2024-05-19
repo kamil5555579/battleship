@@ -1,35 +1,28 @@
 import socket
-import signal
-import sys
 from game_engine import Game, Player, ConnectionErrorWithConn
-# sendall - nakładka na send, która zapewnia, że wszystkie dane zostaną wysłane
 import atexit
 import threading
 
 def close_socket(server_socket):
     server_socket.close()
 
-def start_server():
-    # Tworzenie gniazda serwera
+def start_server() -> socket.socket:
+    """
+    Creates and starts a server socket.
+    """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Adres i port serwera
     server_address = ('localhost', 12345)
-
-    # Bindowanie gniazda do adresu i portu
     server_socket.bind(server_address)
-
-    # Nasłuchiwanie na połączenia
     server_socket.listen()
-
     print('Server listens on port', server_address[1])
 
     return server_socket
 
-def handle_clients(server_socket, conn_list = []):
-
+def handle_clients(server_socket: socket.socket, conn_list: list[socket.socket]) -> list[socket.socket]:
+    """
+    Accepts incoming client connections and manages the connection list.
+    """
     while len(conn_list) < 2:
-        # Akceptowanie połączenia
         print('Waiting for connection...')
         conn, addr = server_socket.accept()
 
@@ -47,18 +40,26 @@ def handle_clients(server_socket, conn_list = []):
 
     return conn_list
 
-def disconnect_clients(conn_list):
+def disconnect_clients(conn_list: list[socket.socket]) -> None:
+    """
+    Disconnects all clients.
+    """
     message = 'exit'
     for conn in conn_list:
         conn.sendall(message.encode())
         conn.close()
         print('Client disconnected')
 
-def init_board(player):
-    try:
-        player.init_board()
-    except ConnectionErrorWithConn as e:
-        print('Error. Closing connection')
+def thread_board_init(player1: Player, player2: Player):
+    """
+    Initializes boards for both players in separate threads.
+    """
+    thread1 = threading.Thread(target=player1.init_board, args=())
+    thread2 = threading.Thread(target=player2.init_board, args=())
+    thread1.start()
+    thread2.start() 
+    thread1.join()
+    thread2.join()
 
 if __name__ == '__main__':
     server_socket = start_server()
@@ -69,13 +70,8 @@ if __name__ == '__main__':
         conn_list = handle_clients(server_socket, conn_list)
         player1 = Player(conn_list[0])
         player2 = Player(conn_list[1])
+        thread_board_init(player1, player2)
         init_success = 0
-        thread1 = threading.Thread(target=init_board, args=(player1,))
-        thread2 = threading.Thread(target=init_board, args=(player2,))
-        thread1.start()
-        thread2.start() 
-        thread1.join()
-        thread2.join()
         for player in [player1, player2]:
             if player.players_board is None:
                 player.conn.close()
@@ -99,5 +95,3 @@ if __name__ == '__main__':
                 print('Game finished')
                 disconnect_clients(conn_list)
                 conn_list = []
-
-    server_socket.close()
