@@ -5,10 +5,10 @@ import time
 Types of boats that will be used in game
 '''
 boat_types = {
-    # "carrier" : 5,
-    # "battleship": 4,
-    # "cruiser": 3,
-    # "submarine": 3,
+    #"carrier" : 5,
+    #"battleship": 4,
+    #"cruiser": 3,
+    "submarine": 3,
     "destroyer": 2
 }
 
@@ -32,7 +32,6 @@ def get_indexes_from_player(conn, prompt: str):
         if indexes != -1:
             break
         send_message(conn, 'error')
-        time.sleep(0.1) # 100ms Gives time for response
 
     return indexes
 
@@ -41,6 +40,8 @@ def send_prompt_and_get_response(conn, prompt: str):
         conn.sendall(prompt.encode())
     except:
         raise ConnectionError
+
+    time.sleep(1) # 100ms Gives time for response
     data = conn.recv(1024)
     return data.decode()
 
@@ -49,6 +50,7 @@ def send_message(conn, message: str):
     Function that sends message to chosen client
     '''
     conn.sendall(message.encode())
+    time.sleep(0.2) # 100ms Gives time for response
 
 def convert_to_index(in_str: str):
         '''
@@ -127,7 +129,7 @@ class Game:
                 break
             else:
                 send_message(self.players[self.active_player].conn, 'You did that shot already!')
-            time.sleep(0.1) # 100ms Gives time for response
+            time.sleep(0.5) # 100ms Gives time for response
 
 
         if self.players[int(not self.active_player)].check_hit(indexes) == 1:
@@ -157,11 +159,11 @@ class Game:
         '''
         while(True):
             print(f"Player {int(self.active_player) + 1} shoots")
-            send_message(self.players[self.active_player].conn, 'Twoje rozstawianie')
+            send_message(self.players[self.active_player].conn, 'Twoje rozstawianie\n')
             self.show_board()
-            send_message(self.players[self.active_player].conn, 'Twoje strzaly')
+            send_message(self.players[self.active_player].conn, 'Twoje strzaly\n')
             self.show_shots()
-            time.sleep(0.1) # 100ms Gives time for response
+            time.sleep(0.5) # 100ms Gives time for response
             try:
                 self.shoot()
             except:
@@ -172,7 +174,7 @@ class Game:
                 send_message(self.players[self.active_player].conn,win_msg)
                 send_message(self.players[not self.active_player].conn,win_msg)
                 print(win_msg)
-                time.sleep(0.1) # 100ms Gives time for response
+                time.sleep(0.5) # 100ms Gives time for response
                 break
             self.change_player()
 
@@ -229,6 +231,7 @@ class Ship_placement:
             i = 0
             # Loop through dictionary of Boats
             while(i<len(lst_of_boat_types)):
+                send_message(conn , str(self))
                 # print(f"Please place your: {lst_of_boat_types[i]} (size: {boat_types[lst_of_boat_types[i]]})")
                 # position = get_indexes_from_player('Staring index (A-Z and 1-10): ')
                 try:
@@ -263,13 +266,13 @@ class Ship_placement:
         if rotation == "v" or rotation == "V":
             if (x+length-1)>9:
                 send_message(self.conn, 'error too long')
-                time.sleep(0.1) # 100ms Gives time for response
+                time.sleep(0.5) # 100ms Gives time for response
                 return -1 
             elif np.any(self.ship_placements[ \
                 x:x+length, \
                 y] == 0):
                     send_message(self.conn, 'error')
-                    time.sleep(0.1) # 100ms Gives time for response
+                    time.sleep(0.5) # 100ms Gives time for response
                     return -1
             else:
                 self.ship_placements[ \
@@ -278,13 +281,13 @@ class Ship_placement:
         else:
             if(y+length-1)>9:
                 send_message(self.conn, 'error too long')
-                time.sleep(0.1) # 100ms Gives time for response
+                time.sleep(0.5) # 100ms Gives time for response
                 return -1 
             if np.any(self.ship_placements[ \
                 x, \
                 y:y+length] == 0):
                     send_message(self.conn, 'error')
-                    time.sleep(0.1) # 100ms Gives time for response
+                    time.sleep(0.5) # 100ms Gives time for response
                     return -1
             else:
                 self.ship_placements[ \

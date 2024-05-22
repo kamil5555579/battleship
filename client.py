@@ -1,11 +1,19 @@
 import socket
 
-def connect_to_server() -> socket.socket:
+boat_types = {
+    "carrier" : 5,
+    "battleship": 4,
+    "cruiser": 3,
+    "submarine": 3,
+    "destroyer": 2
+}
+
+def connect_to_server(ip) -> socket.socket:
     """
     Connects to the server and returns the client socket.
     """
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ('localhost', 12345)
+    server_address = (ip, 12345)
     client_socket.connect(server_address)
 
     return client_socket
@@ -23,7 +31,7 @@ def wait_for_msg(client_socket: socket.socket) -> None:
             case '2':
                 print('We have two players. Game starts!')
             case 'carrier' | 'battleship' | 'cruiser' | 'submarine' | 'destroyer':
-                input_str = 'Place your ' + msg + ' (5 fields)\n Starting index (A-J and 1-10): '
+                input_str = 'Place your ' + msg + f' ({boat_types[msg]} fields)\n Starting index (A-J and 1-10): '
                 index = input(input_str)
                 client_socket.sendall(index.encode())
             case 'rotation':
@@ -43,6 +51,7 @@ def wait_for_msg(client_socket: socket.socket) -> None:
 
 if __name__ == '__main__':
 
-    client_socket = connect_to_server()
+    ip = input('Enter server ip: ')
+    client_socket = connect_to_server(ip)
     wait_for_msg(client_socket)
     client_socket.close()
