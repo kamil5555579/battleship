@@ -11,6 +11,8 @@ def start_server() -> socket.socket:
     Creates and starts a server socket.
     """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
     server_address = ('localhost', 12345)
     server_socket.bind(server_address)
     server_socket.listen()
