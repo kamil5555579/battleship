@@ -25,6 +25,7 @@ def wait_for_msg(client_socket: socket.socket) -> None:
     while True:
         data = client_socket.recv(1024)
         msg = data.decode()
+        msg.strip()
         match msg:
             case '1':
                 print('Waiting for second player...')
